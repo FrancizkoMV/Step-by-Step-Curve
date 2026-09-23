@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculador de Curva Cartesiana</title>
+  
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="./icon-192.png">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <meta name="theme-color" content="#2563eb">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body { background: #f8fafc; color: #1e293b; margin: 0; padding: 15px; }
+    .container { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px; }
+    
+    .card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    h2, h3 { margin-top: 0; color: #0f172a; font-size: 1.1rem; }
+    
+    .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 10px; }
+    .input-group { display: flex; flex-direction: column; gap: 4px; }
+    .input-group label { font-size: 0.8rem; font-weight: 600; color: #475569; }
+    .input-group input, .input-group select { padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.9rem; }
+    
+    .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    button { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 5px; }
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-success { background: #10b981; color: white; }
+    .btn-secondary { background: #64748b; color: white; }
+    
+    .metrics { display: flex; justify-content: space-around; background: #f1f5f9; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 0.85rem; }
+    .points-container { max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 5px; }
+    .point-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #f8fafc; padding: 6px; border-radius: 4px; border: 1px solid #e2e8f0; position: relative; }
+    .point-row.center-point { background: #fef3c7; border-color: #f59e0b; }
+    .badge { position: absolute; top: -8px; right: 8px; font-size: 0.65rem; background: #3b82f6; color: white; padding: 1px 5px; border-radius: 3px; }
+    
+    .canvas-container { width: 100%; overflow-x: auto; background: white; border: 1px solid #cbd5e1; border-radius: 4px; padding: 10px; text-align: center; }
+    canvas { max-width: 100%; height: auto; }
+    .graph-title { font-size: 0.9rem; font-weight: bold; color: #000000; margin-bottom: 5px; text-align: left; }
+    
+    .historial-item { display: flex; justify-content: space-between; align-items: center; padding: 6px; border-bottom: 1px solid #f1f5f9; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  
+  <button id="installAppBtn" class="btn-success" style="display:none;" onclick="installPWA()">📲 Instalar Aplicación</button>
+
+  <!-- 1. DATOS PRINCIPALES -->
+  <div class="card">
+    <h2>1. Datos Principales</h2>
+    <div class="grid-form">
+      <div class="input-group">
+        <label>Nombre / Proyecto:</label>
+        <input type="text" id="input-graph-title" placeholder="Ej: Casco Proa 01">
+      </div>
+      <div class="input-group">
+        <label>Ancho Total (m):</label>
+        <input type="number" id="input-total-width" step="0.01" placeholder="0.00" oninput="recalculateStructure()">
+      </div>
+      <div class="input-group">
+        <label>Altura al Centro (m):</label>
+        <input type="number" id="input-center-height" step="0.01" placeholder="0.00" oninput="recalculateStructure()">
+      </div>
+    </div>
+
+    <!-- CONFIGURACIÓN DE TRAMOS EN CAMPO -->
+    <h3 style="margin-top: 10px; font-size: 0.95rem;">Configuración de Tramos en Campo</h3>
+    <div class="grid-form">
+      <div class="input-group">
+        <label>Paso Inicial (cm):</label>
+        <select id="select-initial-step-cm" onchange="recalculateStructure()">
+          <option value="5">5 cm</option>
+          <option value="10">10 cm</option>
+          <option value="15" selected>15 cm</option>
+          <option value="20">20 cm</option>
+          <option value="25">25 cm</option>
+          <option value="30">30 cm</option>
+          <option value="40">40 cm</option>
+          <option value="50">50 cm</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Espacios Iniciales:</label>
+        <input type="number" id="input-initial-count" value="5" min="0" oninput="recalculateStructure()">
+      </div>
+      <div class="input-group">
+        <label>Paso Secundario (m):</label>
+        <select id="select-main-step-m" onchange="recalculateStructure()">
+          <option value="0.50">0.50 m</option>
+          <option value="1.00" selected>1.00 m</option>
+          <option value="2.00">2.00 m</option>
+          <option value="2.50">2.50 m</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Espacios Secundarios:</label>
+        <input type="number" id="input-main-count" value="1" min="0" oninput="recalculateStructure()">
+      </div>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn-danger" onclick="clearData()">🧹 Limpiar Todo</button>
+      <button class="btn-secondary" onclick="autoInterpolateMissing()">🪄 Auto-Completar Y</button>
+      <button class="btn-primary" onclick="saveRecord()">💾 Guardar</button>
+      <button class="btn-success" onclick="exportPDF()">📄 Exportar PDF</button>
+    </div>
+  </div>
+
+  <!-- METRICAS DE RESUMEN -->
+  <div class="metrics">
+    <span>Ancho: <strong id="metric-width">0.00 m</strong></span>
+    <span>Altura Centro: <strong id="metric-height">0.00 m</strong></span>
+    <span>Largo Arco: <strong id="metric-arc-length">0.00 m</strong></span>
+  </div>
+
+  <!-- 2. ALTURAS Y HASTA EL CENTRO -->
+  <div class="card">
+    <h2>2. Alturas de Y hasta el Centro</h2>
+    <div id="points-list" class="points-container"></div>
+  </div>
+
+  <!-- VISTA PREVIA DE GRÁFICOS -->
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <h2>Vista Previa de Gráficos</h2>
+      <label style="font-size: 0.8rem; cursor: pointer;">
+        <input type="checkbox" id="smooth-toggle" checked onchange="drawAllGraphs()"> Curva Suavizada
+      </label>
+    </div>
+
+    <div class="canvas-container" style="margin-bottom: 15px;">
+      <div class="graph-title">1. Vista Completa (Simétrica)</div>
+      <canvas id="cartesianCanvasFull"></canvas>
+    </div>
+
+    <div class="canvas-container">
+      <div class="graph-title">2. Vista Parcial (Hasta el Punto Medio)</div>
+      <canvas id="cartesianCanvasHalf"></canvas>
+    </div>
+  </div>
+
+  <!-- HISTORIAL -->
+  <div class="card">
+    <h2>Historial de Guardados</h2>
+    <div id="historial-items"></div>
+  </div>
+
+</div>
+
+<script src="./app.js"></script>
+</body>
+</html>
