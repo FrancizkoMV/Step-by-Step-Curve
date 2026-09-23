@@ -1,0 +1,25 @@
+{
+  "short_name": "CurvaLab",
+  "name": "Step by Step Curve - Calculador de Curvas",
+  "icons": [
+    {
+      "src": "./icon1.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon2.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "id": "./index.html",
+  "start_url": "./index.html",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "./"
+}
